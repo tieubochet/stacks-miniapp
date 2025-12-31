@@ -5,6 +5,7 @@ export default function App() {
   const [client, setClient] = useState(null)
   const [address, setAddress] = useState(null)
   const [balance, setBalance] = useState(null)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     initClient().then(setClient)
@@ -14,7 +15,10 @@ export default function App() {
     if (!client) return
 
     const session = await connectWallet(client)
-    const account = session.namespaces.stacks.accounts[0]
+
+    const account =
+      session.namespaces.stacks.accounts[0] // stacks:1:SPxxx
+
     const addr = account.split(':')[2]
 
     setAddress(addr)
@@ -22,11 +26,18 @@ export default function App() {
   }
 
   async function fetchBalance(addr) {
-    const res = await fetch(
-      `https://stacks-node-api.mainnet.stacks.co/extended/v1/address/${addr}/balances`
-    )
-    const data = await res.json()
-    setBalance(Number(data.stx.balance) / 1_000_000)
+    try {
+      setLoading(true)
+      const res = await fetch(
+        `https://stacks-node-api.mainnet.stacks.co/extended/v1/address/${addr}/balances`
+      )
+      const data = await res.json()
+      setBalance(Number(data.stx.balance) / 1_000_000)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -42,7 +53,10 @@ export default function App() {
       {address && (
         <>
           <p><b>Address:</b> {address}</p>
-          <p><b>Balance:</b> {balance} STX</p>
+          {loading && <p>Loading...</p>}
+          {balance !== null && (
+            <p><b>Balance:</b> {balance} STX</p>
+          )}
         </>
       )}
     </div>
